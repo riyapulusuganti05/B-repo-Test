@@ -134,40 +134,40 @@ jobs:
           # Display Name of Job
           job-name: 'Register Package'
 
-  change:
-    name: 'Change'
-    needs: registerPackage
-    runs-on: ubuntu-latest
-    steps:     
-    - name: ServiceNow DevOps Change Automation
-    # You may pin to the exact commit or the version.            
-      uses: ServiceNow/servicenow-devops-change@main
-      with:
-          # ServiceNow Instance URL
-          instance-url: ${{ secrets.SN_INSTANCE_URL }}
-          # Devops Integration Token
-          devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
-          # Orchestration Tool Id
-          tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
-          # Display Name of the Job
-          job-name: 'Change'
-          # Github Context
-          context-github: ${{ toJSON(github) }}
-          change-request: '{
-            "attributes": {
-              "requested_by": {
-                "name": "DevOps System"
-              },
-              "assignment_group": {
-              "name": "Change Management"
-              },
-              "priority": "2",
-              "comments": "This is a sample pipeline script to be added in your change step",
-              "work_notes": "Update this to work_notes",
-              "start_date": "2023-09-07 11:59:59",
-              "end_date": "2023-09-09 11:59:59"
-            }
-          }'
+  # change:
+  #   name: 'Change'
+  #   needs: registerPackage
+  #   runs-on: ubuntu-latest
+  #   steps:     
+  #   - name: ServiceNow DevOps Change Automation
+  #   # You may pin to the exact commit or the version.            
+  #     uses: ServiceNow/servicenow-devops-change@main
+  #     with:
+  #         # ServiceNow Instance URL
+  #         instance-url: ${{ secrets.SN_INSTANCE_URL }}
+  #         # Devops Integration Token
+  #         devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+  #         # Orchestration Tool Id
+  #         tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+  #         # Display Name of the Job
+  #         job-name: 'Change'
+  #         # Github Context
+  #         context-github: ${{ toJSON(github) }}
+  #         change-request: '{
+  #           "attributes": {
+  #             "requested_by": {
+  #               "name": "DevOps System"
+  #             },
+  #             "assignment_group": {
+  #             "name": "Change Management"
+  #             },
+  #             "priority": "2",
+  #             "comments": "This is a sample pipeline script to be added in your change step",
+  #             "work_notes": "Update this to work_notes",
+  #             "start_date": "2023-09-07 11:59:59",
+  #             "end_date": "2023-09-09 11:59:59"
+  #           }
+  #         }'
           
   # uncomment below lines of code to create change request using deployment gates, indent code if necessary
   #         deployment-gate: '{"environment":"prod", "jobId":"deploy", "jobName":"Deploy"}'
