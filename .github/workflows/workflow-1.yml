@@ -174,7 +174,7 @@ jobs:
 
   deploy:
     name: 'Deploy'
-    needs: change
+    #needs: change
     runs-on: ubuntu-latest
     steps:
     - name: Run deployment scripts
