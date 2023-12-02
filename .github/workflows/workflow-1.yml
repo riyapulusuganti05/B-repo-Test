@@ -1,0 +1,181 @@
+# This workflow uses ServiceNow custom actions that are certified by ServiceNow.
+
+name: CICD GitHub workflow
+
+on:
+  push:
+    branches:
+      - main
+
+
+jobs:
+  build:
+    name: 'Build'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+    - name: Build with Maven
+      run: mvn clean compile
+
+  # test:
+  #   name: 'Test'
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4.0.0
+        
+  #   - name: Run Tests with Maven
+  #     run: mvn -B test --file pom.xml
+
+  #   - name: ServiceNow DevOps Unit Test Results
+  #   # You may pin to the exact commit or the version.
+  #     uses: ServiceNow/servicenow-devops-test-report@main
+  #     with:
+  #         # Devops Integration Token
+  #         devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+  #         # ServiceNow Instance Name
+  #         instance-url: ${{ secrets.SN_INSTANCE_URL }}
+  #         # Orchestration Tool Id
+  #         tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+  #         # Job Name
+  #         job-name: 'Test' # Should be same name as declared in 'name' clause of the current Stage
+  #         # Github Context
+  #         context-github: ${{ toJSON(github) }}
+  #         # JUnit xml report file name with path
+  #         xml-report-filename: target/surefire-reports/testng-results.xml # if only JUnit tests, use target/surefire-reports/testng-results.xml
+  #                                                                         # if both JUnit & TestNG tests, use target/surefire-reports/testng-junit-results/testng-results.xml
+
+  registerArtifact:
+    name: 'Register Artifact'
+  #  needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: ServiceNow DevOps Register Artifact
+    # You may pin to the exact commit or the version.          
+      uses: ServiceNow/servicenow-devops-register-artifact@main
+      with:
+          # Devops Integration Token
+          devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+          # ServiceNow Instance URL
+          instance-url: ${{ secrets.SN_INSTANCE_URL }}
+          # Orchestration Tool Id
+          tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+          # Display Name of the Job
+          job-name: 'Register Artifact'
+          # Github Context
+          context-github: ${{ toJSON(github) }}
+          # List of Artifacts to be registered
+          artifacts: '[
+              {
+                  "name": "app-devops.jar",
+                  "version": "1.${{ github.run_number }}",
+                  "semanticVersion": "1.${{ github.run_number }}.0",
+                  "repositoryName": "${{ github.repository }}"
+              }
+          ]'
+
+  
+
+  # securityScan:
+  #   name: 'Security Scan'
+  #  # needs: sonarScan
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4.0.0
+
+  #   - name: ServiceNow DevOps Security Results
+  #     uses: ServiceNow/servicenow-devops-security-result@main
+  #     with:
+  #         # Devops Integration Token
+  #         devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+  #         instance-url: ${{ secrets.SN_INSTANCE_URL }}
+  #         tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+  #         context-github: ${{ toJSON(github) }}
+  #         job-name: 'Security Scan'
+  #         security-result-attributes: '{ "scanner": "Veracode", "applicationName": "10kflaws-72", "securityToolId": "5d8cbe8ec38a31108a432e0ad001315e" }'
+
+  registerPackage:
+    name: 'Register Package'
+   # needs: securityScan
+    runs-on: ubuntu-latest
+    steps:
+    - name: ServiceNow DevOps Register Package
+    # You may pin to the exact commit or the version.           
+      uses: ServiceNow/servicenow-devops-register-package@main
+      with:
+          # Devops Integration Token
+          devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+          # ServiceNow Instance URL
+          instance-url: ${{ secrets.SN_INSTANCE_URL }}
+          # Orchestration Tool Id of the tool created in ServiceNow
+          tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+          # Github Context
+          context-github: ${{ toJSON(github) }}
+          # List of Artifacts in JSON format
+          artifacts: '[
+              {
+                  "name": "app-devops.jar",
+                  "version": "1.${{ github.run_number }}",
+                  "semanticVersion": "1.${{ github.run_number }}.0",
+                  "repositoryName": "${{ github.repository }}"
+              }
+          ]'
+          # Name of the Package that contains list of artifacts
+          package-name: 'app-devops-change-velocity.war'
+          # Display Name of Job
+          job-name: 'Register Package'
+
+  change:
+    name: 'Change'
+    needs: registerPackage
+    runs-on: ubuntu-latest
+    steps:     
+    - name: ServiceNow DevOps Change Automation
+    # You may pin to the exact commit or the version.            
+      uses: ServiceNow/servicenow-devops-change@main
+      with:
+          # ServiceNow Instance URL
+          instance-url: ${{ secrets.SN_INSTANCE_URL }}
+          # Devops Integration Token
+          devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+          # Orchestration Tool Id
+          tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+          # Display Name of the Job
+          job-name: 'Change'
+          # Github Context
+          context-github: ${{ toJSON(github) }}
+          change-request: '{
+            "attributes": {
+              "requested_by": {
+                "name": "DevOps System"
+              },
+              "assignment_group": {
+              "name": "Change Management"
+              },
+              "priority": "2",
+              "comments": "This is a sample pipeline script to be added in your change step",
+              "work_notes": "Update this to work_notes",
+              "start_date": "2023-09-07 11:59:59",
+              "end_date": "2023-09-09 11:59:59"
+            }
+          }'
+          
+  # uncomment below lines of code to create change request using deployment gates, indent code if necessary
+  #         deployment-gate: '{"environment":"prod", "jobId":"deploy", "jobName":"Deploy"}'
+
+  deploy:
+    name: 'Deploy'
+    needs: change
+    runs-on: ubuntu-latest
+    steps:
+    - name: Run deployment scripts
+      run: echo 'Deployment step in progress...'
