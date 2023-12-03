@@ -6,14 +6,6 @@ on:
       - main
 
 jobs:
-  job_template:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Placeholder Step
-        run: echo "This is a placeholder step. Replace it with your actual steps."
-
-# Define jobs for the first 10 stages
-jobs:
   - name: Stage 1
     runs-on: ubuntu-latest
     steps:
