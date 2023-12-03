@@ -75,8 +75,7 @@ jobs:
       - name: Step 10
         run: echo "Job 10, Stage 10"
 
-# Use the job template to repeat the pattern for the next set of stages
-jobs:
+
   - name: Stage 11
     runs-on: ubuntu-latest
     needs: Stage 10
