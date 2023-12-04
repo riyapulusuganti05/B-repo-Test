@@ -2,7 +2,7 @@ name: Large Workflow
 'on':
   push:
     branches:
-      - main
+      - new-branch-1
 jobs:
  
   build:
