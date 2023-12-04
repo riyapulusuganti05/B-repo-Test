@@ -3,9 +3,11 @@
 name: CICD GitHub workflow
 
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
+  schedule:
+    - cron: '*/1 * * * *'
 
 
 jobs:
