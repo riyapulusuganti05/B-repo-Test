@@ -560,7 +560,7 @@ jobs:
       - name: Step 2
         run: 'echo "Job 2, Stage 2"'
 
-  Stage35:
+  StageRandom2!@&*():
     runs-on: ubuntu-latest
     steps:
       - name: Step 1
