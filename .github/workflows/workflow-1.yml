@@ -1,877 +1,183 @@
-name: Large Workflow
-'on': workflow_dispatch
+# This workflow uses ServiceNow custom actions that are certified by ServiceNow.
+
+name: CICD GitHub workflow
+
+on:
   # push:
   #   branches:
   #     - main
-jobs:
-    build:
-        # Running your workflow when a pull request merges
-        # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#running-your-workflow-when-a-pull-request-merges-1
-        #if: github.event.pull_request.merged == true
-        name: Build
-        runs-on: ubuntu-latest
-        steps:           
-            - uses: actions/checkout@v2
-              with:
-                  fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-            - name: Set up JDK 11
-              uses: actions/setup-java@v1
-              with:
-                  java-version: 11
-            - name: Cache SonarCloud packages
-              uses: actions/cache@v1
-              with:
-                  path: ~/.sonar/cache
-                  key: ${{ runner.os }}-sonar
-                  restore-keys: ${{ runner.os }}-sonar
-            - name: Cache Maven packages
-              uses: actions/cache@v1
-              with:
-                  path: ~/.m2
-                  key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-                  restore-keys: ${{ runner.os }}-m2
-    test:
-        #if: github.event.pull_request.merged == true
-        name: Test
-        needs: build
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-              with:
-                  fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-            - name: List current directory
-              run: ls -a
-            - name: Run Tests with Maven
-              run: mvn -B test --file pom.xml
-            # run: |
-            #       ls -l
-            # mvn clean test
-            # run: mvn test
-            # mvn -B test --file ./devops-test-repo/pom.xml
-            - name: What's in the target directory
-              run: |
-                    cd target
-                    ls -a
+  schedule:
+    - cron: '*/1 * * * *'
 
-    registerPackage:
-          name: 'Register Package'
-        # needs: securityScan
-          runs-on: ubuntu-latest
-          steps:
-          - name: ServiceNow DevOps Register Package
-          # You may pin to the exact commit or the version.           
-            uses: ServiceNow/servicenow-devops-register-package@main
-            with:
-                # Devops Integration Token
-                devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
-                # ServiceNow Instance URL
-                instance-url: ${{ secrets.SN_INSTANCE_URL }}
-                # Orchestration Tool Id of the tool created in ServiceNow
-                tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
-                # Github Context
-                context-github: ${{ toJSON(github) }}
-                # List of Artifacts in JSON format
-                artifacts: '[
-                    {
-                        "name": "app-devops.jar",
-                        "version": "1.${{ github.run_number }}",
-                        "semanticVersion": "1.${{ github.run_number }}.0",
-                        "repositoryName": "${{ github.repository }}"
-                    }
-                ]'
-                # Name of the Package that contains list of artifacts
-                package-name: 'app-devops-change-velocity.war'
-                # Display Name of Job
-                job-name: 'Register Package'
+
+jobs:
+  build:
+    name: 'Build'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+    - name: Build with Maven
+      run: mvn clean compile
+
+  # test:
+  #   name: 'Test'
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4.0.0
+        
+  #   - name: Run Tests with Maven
+  #     run: mvn -B test --file pom.xml
+
+  #   - name: ServiceNow DevOps Unit Test Results
+  #   # You may pin to the exact commit or the version.
+  #     uses: ServiceNow/servicenow-devops-test-report@main
+  #     with:
+  #         # Devops Integration Token
+  #         devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+  #         # ServiceNow Instance Name
+  #         instance-url: ${{ secrets.SN_INSTANCE_URL }}
+  #         # Orchestration Tool Id
+  #         tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+  #         # Job Name
+  #         job-name: 'Test' # Should be same name as declared in 'name' clause of the current Stage
+  #         # Github Context
+  #         context-github: ${{ toJSON(github) }}
+  #         # JUnit xml report file name with path
+  #         xml-report-filename: target/surefire-reports/testng-results.xml # if only JUnit tests, use target/surefire-reports/testng-results.xml
+  #                                                                         # if both JUnit & TestNG tests, use target/surefire-reports/testng-junit-results/testng-results.xml
+
+  registerArtifact:
+    name: 'Register Artifact'
+  #  needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: ServiceNow DevOps Register Artifact
+    # You may pin to the exact commit or the version.          
+      uses: ServiceNow/servicenow-devops-register-artifact@main
+      with:
+          # Devops Integration Token
+          devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+          # ServiceNow Instance URL
+          instance-url: ${{ secrets.SN_INSTANCE_URL }}
+          # Orchestration Tool Id
+          tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+          # Display Name of the Job
+          job-name: 'Register Artifact'
+          # Github Context
+          context-github: ${{ toJSON(github) }}
+          # List of Artifacts to be registered
+          artifacts: '[
+              {
+                  "name": "app-devops.jar",
+                  "version": "1.${{ github.run_number }}",
+                  "semanticVersion": "1.${{ github.run_number }}.0",
+                  "repositoryName": "${{ github.repository }}"
+              }
+          ]'
+
+  
+
+  # securityScan:
+  #   name: 'Security Scan'
+  #  # needs: sonarScan
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4.0.0
+
+  #   - name: ServiceNow DevOps Security Results
+  #     uses: ServiceNow/servicenow-devops-security-result@main
+  #     with:
+  #         # Devops Integration Token
+  #         devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+  #         instance-url: ${{ secrets.SN_INSTANCE_URL }}
+  #         tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+  #         context-github: ${{ toJSON(github) }}
+  #         job-name: 'Security Scan'
+  #         security-result-attributes: '{ "scanner": "Veracode", "applicationName": "10kflaws-72", "securityToolId": "5d8cbe8ec38a31108a432e0ad001315e" }'
+
+  registerPackage:
+    name: 'Register Package'
+   # needs: securityScan
+    runs-on: ubuntu-latest
+    steps:
+    - name: ServiceNow DevOps Register Package
+    # You may pin to the exact commit or the version.           
+      uses: ServiceNow/servicenow-devops-register-package@main
+      with:
+          # Devops Integration Token
+          devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+          # ServiceNow Instance URL
+          instance-url: ${{ secrets.SN_INSTANCE_URL }}
+          # Orchestration Tool Id of the tool created in ServiceNow
+          tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+          # Github Context
+          context-github: ${{ toJSON(github) }}
+          # List of Artifacts in JSON format
+          artifacts: '[
+              {
+                  "name": "app-devops.jar",
+                  "version": "1.${{ github.run_number }}",
+                  "semanticVersion": "1.${{ github.run_number }}.0",
+                  "repositoryName": "${{ github.repository }}"
+              }
+          ]'
+          # Name of the Package that contains list of artifacts
+          package-name: 'app-devops-change-velocity.war'
+          # Display Name of Job
+          job-name: 'Register Package'
+
+  # change:
+  #   name: 'Change'
+  #   needs: registerPackage
+  #   runs-on: ubuntu-latest
+  #   steps:     
+  #   - name: ServiceNow DevOps Change Automation
+  #   # You may pin to the exact commit or the version.            
+  #     uses: ServiceNow/servicenow-devops-change@main
+  #     with:
+  #         # ServiceNow Instance URL
+  #         instance-url: ${{ secrets.SN_INSTANCE_URL }}
+  #         # Devops Integration Token
+  #         devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
+  #         # Orchestration Tool Id
+  #         tool-id: ${{ secrets.SN_ORCHESTRATION_TOOL_ID }}
+  #         # Display Name of the Job
+  #         job-name: 'Change'
+  #         # Github Context
+  #         context-github: ${{ toJSON(github) }}
+  #         change-request: '{
+  #           "attributes": {
+  #             "requested_by": {
+  #               "name": "DevOps System"
+  #             },
+  #             "assignment_group": {
+  #             "name": "Change Management"
+  #             },
+  #             "priority": "2",
+  #             "comments": "This is a sample pipeline script to be added in your change step",
+  #             "work_notes": "Update this to work_notes",
+  #             "start_date": "2023-09-07 11:59:59",
+  #             "end_date": "2023-09-09 11:59:59"
+  #           }
+  #         }'
+          
+  # uncomment below lines of code to create change request using deployment gates, indent code if necessary
+  #         deployment-gate: '{"environment":"prod", "jobId":"deploy", "jobName":"Deploy"}'
 
   deploy:
+    name: 'Deploy'
+    #needs: change
     runs-on: ubuntu-latest
-    needs: test
     steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-  
-  Stage4:
-    runs-on: ubuntu-latest
-    needs: deploy
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage5:
-    runs-on: ubuntu-latest
-    needs: Stage4
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-  
-  Stage6:
-    runs-on: ubuntu-latest
-    needs: Stage5
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-  
-  Stage7:
-    runs-on: ubuntu-latest
-    needs: Stage6
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage8:
-    runs-on: ubuntu-latest
-    needs: Stage7
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  StageRandom:
-    runs-on: ubuntu-latest
-    needs: Stage8
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage9:
-    runs-on: ubuntu-latest
-    needs: StageRandom
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  
-  Stage10:
-    runs-on: ubuntu-latest
-    needs: Stage9
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage11:
-    runs-on: ubuntu-latest
-    needs: Stage10
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage12:
-    runs-on: ubuntu-latest
-    needs: Stage11
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage13:
-    runs-on: ubuntu-latest
-    needs: Stage12
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage14:
-    runs-on: ubuntu-latest
-    needs: Stage13
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage15:
-    runs-on: ubuntu-latest
-    needs: Stage14
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage16:
-    runs-on: ubuntu-latest
-    needs: Stage15
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage17:
-    runs-on: ubuntu-latest
-    needs: Stage16
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage18:
-    runs-on: ubuntu-latest
-    needs: Stage17
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage19:
-    runs-on: ubuntu-latest
-    needs: Stage18
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-  
-  Stage20:
-    runs-on: ubuntu-latest
-    needs: Stage19
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage21:
-    runs-on: ubuntu-latest
-    needs: Stage20
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage22:
-    runs-on: ubuntu-latest
-    needs: Stage21
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage23:
-    runs-on: ubuntu-latest
-    needs: Stage22
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage24:
-    runs-on: ubuntu-latest
-    needs: Stage23
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage25:
-    runs-on: ubuntu-latest
-    needs: Stage24
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage26:
-    runs-on: ubuntu-latest
-    needs: Stage25
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage27:
-    runs-on: ubuntu-latest
-    needs: Stage26
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-  
-  Stage28:
-    runs-on: ubuntu-latest
-    needs: Stage27
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage29:
-    runs-on: ubuntu-latest
-    needs: Stage28
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage30:
-    runs-on: ubuntu-latest
-    needs: Stage29
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage31:
-    runs-on: ubuntu-latest
-    needs: Stage30
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage32:
-    runs-on: ubuntu-latest
-    needs: Stage31
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage33:
-    runs-on: ubuntu-latest
-    needs: Stage32
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage34:
-    runs-on: ubuntu-latest
-    needs: Stage33
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage35:
-    runs-on: ubuntu-latest
-    needs: Stage34
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage36:
-    runs-on: ubuntu-latest
-    needs: Stage35
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage37:
-    runs-on: ubuntu-latest
-    needs: Stage36
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage38:
-    runs-on: ubuntu-latest
-    needs: Stage37
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage39:
-    runs-on: ubuntu-latest
-    needs: Stage38
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage40:
-    runs-on: ubuntu-latest
-    needs: Stage39
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage41:
-    runs-on: ubuntu-latest
-    needs: Stage40
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage42:
-    runs-on: ubuntu-latest
-    needs: Stage41
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage43:
-    runs-on: ubuntu-latest
-    needs: Stage42
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage44:
-    runs-on: ubuntu-latest
-    needs: Stage43
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage45:
-    runs-on: ubuntu-latest
-    needs: Stage44
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage46:
-    runs-on: ubuntu-latest
-    needs: Stage45
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage47:
-    runs-on: ubuntu-latest
-    needs: Stage46
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage48:
-    runs-on: ubuntu-latest
-    needs: Stage47
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage49:
-    runs-on: ubuntu-latest
-    needs: Stage48
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage50:
-    runs-on: ubuntu-latest
-    needs: Stage49
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage51:
-    runs-on: ubuntu-latest
-    needs: Stage50
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage52:
-    runs-on: ubuntu-latest
-    needs: Stage51
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage53:
-    runs-on: ubuntu-latest
-    needs: Stage52
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage54:
-    runs-on: ubuntu-latest
-    needs: Stage53
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage55:
-    runs-on: ubuntu-latest
-    needs: Stage54
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage56:
-    runs-on: ubuntu-latest
-    needs: Stage55
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage57:
-    runs-on: ubuntu-latest
-    needs: Stage56
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage58:
-    runs-on: ubuntu-latest
-    needs: Stage57
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage59:
-    runs-on: ubuntu-latest
-    needs: Stage58
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage60:
-    runs-on: ubuntu-latest
-    needs: Stage59
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage61:
-    runs-on: ubuntu-latest
-    needs: Stage60
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  StageRandom_-:
-    runs-on: ubuntu-latest
-    needs: Stage61
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage62:
-    runs-on: ubuntu-latest
-    needs: Stage61
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage63:
-    runs-on: ubuntu-latest
-    needs: Stage62
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage64:
-    runs-on: ubuntu-latest
-    needs: Stage63
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage65:
-    runs-on: ubuntu-latest
-    needs: Stage64
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage66:
-    runs-on: ubuntu-latest
-    needs: Stage65
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage67:
-    runs-on: ubuntu-latest
-    needs: Stage66
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage68:
-    runs-on: ubuntu-latest
-    needs: Stage67
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage69:
-    runs-on: ubuntu-latest
-    needs: Stage68
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage70:
-    runs-on: ubuntu-latest
-    needs: Stage69
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage71:
-    runs-on: ubuntu-latest
-    needs: Stage70
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage72:
-    runs-on: ubuntu-latest
-    needs: Stage71
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage73:
-    runs-on: ubuntu-latest
-    needs: Stage72
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage74:
-    runs-on: ubuntu-latest
-    needs: Stage73
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage75:
-    runs-on: ubuntu-latest
-    needs: Stage74
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage76:
-    runs-on: ubuntu-latest
-    needs: Stage75
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage77:
-    runs-on: ubuntu-latest
-    needs: Stage76
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage78:
-    runs-on: ubuntu-latest
-    needs: Stage77
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-
-  Stage79:
-    runs-on: ubuntu-latest
-    needs: Stage78
-    steps:
-      - name: Step 1
-        run: 'echo "Job 1, Stage 1"'
- 
-      - name: Step 2
-        run: 'echo "Job 2, Stage 2"'
-  
+    - name: Run deployment scripts
+      run: echo 'Deployment step in progress...'
