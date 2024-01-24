@@ -2,12 +2,14 @@
 
 name: CICD GitHub workflow
 
-on:
+# on:
   # push:
   #   branches:
   #     - main
-  schedule:
-    - cron: '*/1 * * * *'
+  # schedule:
+  #   - cron: '*/1 * * * *'
+on: 
+  workflow_dispatch:
 
 
 jobs:
