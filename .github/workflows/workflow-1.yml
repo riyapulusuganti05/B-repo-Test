@@ -1,6 +1,6 @@
 # This workflow uses ServiceNow custom actions that are certified by ServiceNow.
 
-name: CICD GitHub workflow
+name: CICD GitHub workflow BTD
 
 # on:
   # push:
