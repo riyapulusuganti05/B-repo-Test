@@ -192,7 +192,7 @@ jobs:
       name: 'ServiceNow DevOps Change'
       steps:
         - name: ServiceNow Change
-          uses: ServiceNow/servicenow-devops-change@main
+          uses: ServiceNow/servicenow-devops-change@scratch/node20update
           with:
             # Devops Integration Token
             devops-integration-token: ${{ secrets.SN_DEVOPS_TOKEN }}
