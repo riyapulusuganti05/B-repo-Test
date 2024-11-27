@@ -59,7 +59,7 @@ jobs:
 
   registerArtifact:
     name: 'Register Artifact'
-  #  needs: test
+    needs: test
     runs-on: ubuntu-latest
     steps:
     - name: ServiceNow DevOps Register Artifact
@@ -108,8 +108,8 @@ jobs:
   #         security-result-attributes: '{ "scanner": "Veracode", "applicationName": "10kflaws-72", "securityToolId": "5d8cbe8ec38a31108a432e0ad001315e" }'
 
   registerPackage:
-    name: 'Register Package'
-   # needs: securityScan
+    name: 'registerArtifact'
+    needs: Register Artifact
     runs-on: ubuntu-latest
     steps:
     - name: ServiceNow DevOps Register Package
@@ -178,7 +178,7 @@ jobs:
 
   deploy:
     name: 'Deploy'
-    #needs: change
+    needs: registerPackage
     runs-on: ubuntu-latest
     steps:
     - name: Run deployment scripts
