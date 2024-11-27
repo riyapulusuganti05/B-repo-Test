@@ -52,7 +52,7 @@ jobs:
             }}.0", "repositoryName": "${{ github.repository }}" } ]
   registerPackage:
     name: registerArtifact
-    needs: Register Artifact
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: ServiceNow DevOps Register Package
