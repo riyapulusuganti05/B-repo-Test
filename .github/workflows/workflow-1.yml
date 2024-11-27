@@ -52,7 +52,7 @@ jobs:
             }}.0", "repositoryName": "${{ github.repository }}" } ]
   registerPackage:
     name: registerArtifact
-    needs: test
+    needs: registerArtifact
     runs-on: ubuntu-latest
     steps:
       - name: ServiceNow DevOps Register Package
@@ -76,7 +76,7 @@ jobs:
       - name: Run deployment scripts
         run: echo 'Deployment step in progress...'
   ServiceNowDevOpsChange:
-    needs: build
+    needs: deploy
     runs-on: ubuntu-latest
     name: ServiceNow DevOps Change
     steps:
