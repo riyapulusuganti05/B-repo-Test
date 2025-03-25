@@ -15,24 +15,24 @@ jobs:
           cache: maven
       - name: Build with Maven
         run: mvn clean compile
-  # test:
-  #   name: Test
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4.0.0
-  #     - name: Run Tests with Maven
-  #       run: mvn -B test --file pom.xml
-  #     - name: ServiceNow DevOps Unit Test Results
-  #       uses: ServiceNow/servicenow-devops-test-report@main
-  #       with:
-  #         devops-integration-token: '${{ secrets.SN_DEVOPS_TOKEN }}'
-  #         instance-url: '${{ secrets.SN_INSTANCE_URL }}'
-  #         tool-id: '${{ secrets.SN_ORCHESTRATION_TOOL_ID }}'
-  #         job-name: Test
-  #         context-github: '${{ toJSON(github) }}'
-  #         xml-report-filename: target/surefire-reports/testng-results.xml
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.0.0
+      - name: Run Tests with Maven
+        run: mvn -B test --file pom.xml
+      - name: ServiceNow DevOps Unit Test Results
+        uses: ServiceNow/servicenow-devops-test-report@main
+        with:
+          devops-integration-token: '${{ secrets.SN_DEVOPS_TOKEN }}'
+          instance-url: '${{ secrets.SN_INSTANCE_URL }}'
+          tool-id: '${{ secrets.SN_ORCHESTRATION_TOOL_ID }}'
+          job-name: Test
+          context-github: '${{ toJSON(github) }}'
+          xml-report-filename: target/surefire-reports/testng-results.xml
   registerArtifact:
     name: Register Artifact
     needs: build
