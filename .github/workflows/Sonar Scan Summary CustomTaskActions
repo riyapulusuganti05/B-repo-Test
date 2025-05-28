@@ -1,4 +1,4 @@
-name: SonarScanSummaryCustomTaskActions
+name: Sonar Scan Summary CustomTaskActions
 
 on:
   workflow_dispatch:
