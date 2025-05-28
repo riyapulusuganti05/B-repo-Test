@@ -35,7 +35,7 @@ jobs:
   #         xml-report-filename: target/surefire-reports/testng-results.xml
   registerArtifact:
     name: Register Artifact
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: ServiceNow DevOps Register Artifact
