@@ -35,7 +35,7 @@ jobs:
           xml-report-filename: target/surefire-reports/testng-results.xml
   registerArtifact:
     name: Register Artifact
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: ServiceNow DevOps Register Artifact
@@ -72,7 +72,7 @@ jobs:
   sonarScan:
    name: 'Sonar Scan'
    # if: ${{ github.ref != 'refs/heads/main' }}
-   needs: registerArtifact
+   needs: registerPackage
    runs-on: ubuntu-latest
    steps:
    - name: Checkout
@@ -99,7 +99,7 @@ jobs:
          sonar-project-key: ${{ secrets.SONAR_PROJECT_KEY }}
   deploy:
     name: Deploy
-    needs: registerPackage
+    needs: sonarScan
     runs-on: ubuntu-latest
     steps:
       - name: Run deployment scripts
