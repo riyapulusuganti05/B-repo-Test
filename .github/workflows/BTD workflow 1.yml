@@ -1,6 +1,6 @@
 name: CICD GitHub workflow BTD
-'on':
-  workflow_dispatch: null
+on:
+  workflow_dispatch:
 jobs:
   build:
     name: Build
