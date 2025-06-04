@@ -99,7 +99,7 @@ jobs:
   #        sonar-project-key: ${{ secrets.SONAR_PROJECT_KEY }}
   deploy:
     name: Deploy
-  #  needs: registerPackage
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Run deployment scripts
