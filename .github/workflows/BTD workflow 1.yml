@@ -33,41 +33,41 @@ jobs:
   #         job-name: Test
   #         context-github: '${{ toJSON(github) }}'
   #         xml-report-filename: target/surefire-reports/testng-results.xml
-  registerArtifact:
-    name: Register Artifact
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: ServiceNow DevOps Register Artifact
-        uses: ServiceNow/servicenow-devops-register-artifact@main
-        with:
-          devops-integration-token: '${{ secrets.SN_DEVOPS_TOKEN }}'
-          instance-url: '${{ secrets.SN_INSTANCE_URL }}'
-          tool-id: '${{ secrets.SN_ORCHESTRATION_TOOL_ID }}'
-          job-name: Register Artifact
-          context-github: '${{ toJSON(github) }}'
-          artifacts: >-
-            [ {      "name": "app-devops.jar", "version": "1.${{
-            github.run_number }}", "semanticVersion": "1.${{ github.run_number
-            }}.0", "repositoryName": "${{ github.repository }}" } ]
-  registerPackage:
-    name: registerPackage
-    needs: registerArtifact
-    runs-on: ubuntu-latest
-    steps:
-      - name: ServiceNow DevOps Register Package
-        uses: ServiceNow/servicenow-devops-register-package@main
-        with:
-          devops-integration-token: '${{ secrets.SN_DEVOPS_TOKEN }}'
-          instance-url: '${{ secrets.SN_INSTANCE_URL }}'
-          tool-id: '${{ secrets.SN_ORCHESTRATION_TOOL_ID }}'
-          context-github: '${{ toJSON(github) }}'
-          artifacts: >-
-            [ { "name": "app-devops.jar", "version": "1.${{ github.run_number
-            }}", "semanticVersion": "1.${{ github.run_number }}.0",
-            "repositoryName": "${{ github.repository }}" } ]
-          package-name: app-devops-change-velocity.war
-          job-name: Register Package
+  # registerArtifact:
+  #   name: Register Artifact
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: ServiceNow DevOps Register Artifact
+  #       uses: ServiceNow/servicenow-devops-register-artifact@main
+  #       with:
+  #         devops-integration-token: '${{ secrets.SN_DEVOPS_TOKEN }}'
+  #         instance-url: '${{ secrets.SN_INSTANCE_URL }}'
+  #         tool-id: '${{ secrets.SN_ORCHESTRATION_TOOL_ID }}'
+  #         job-name: Register Artifact
+  #         context-github: '${{ toJSON(github) }}'
+  #         artifacts: >-
+  #           [ {      "name": "app-devops.jar", "version": "1.${{
+  #           github.run_number }}", "semanticVersion": "1.${{ github.run_number
+  #           }}.0", "repositoryName": "${{ github.repository }}" } ]
+  # registerPackage:
+  #   name: registerPackage
+  #   needs: registerArtifact
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: ServiceNow DevOps Register Package
+  #       uses: ServiceNow/servicenow-devops-register-package@main
+  #       with:
+  #         devops-integration-token: '${{ secrets.SN_DEVOPS_TOKEN }}'
+  #         instance-url: '${{ secrets.SN_INSTANCE_URL }}'
+  #         tool-id: '${{ secrets.SN_ORCHESTRATION_TOOL_ID }}'
+  #         context-github: '${{ toJSON(github) }}'
+  #         artifacts: >-
+  #           [ { "name": "app-devops.jar", "version": "1.${{ github.run_number
+  #           }}", "semanticVersion": "1.${{ github.run_number }}.0",
+  #           "repositoryName": "${{ github.repository }}" } ]
+  #         package-name: app-devops-change-velocity.war
+  #         job-name: Register Package
           
   # sonarScan:
   #  name: 'Sonar Scan'
@@ -99,7 +99,7 @@ jobs:
   #        sonar-project-key: ${{ secrets.SONAR_PROJECT_KEY }}
   deploy:
     name: Deploy
-    needs: registerPackage
+  #  needs: registerPackage
     runs-on: ubuntu-latest
     steps:
       - name: Run deployment scripts
