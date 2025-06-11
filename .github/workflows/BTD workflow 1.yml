@@ -1,4 +1,4 @@
-name: CICD GitHub workflow BTD    
+name: CICD GitHub workflow BTD     
 on:
   workflow_dispatch:
 jobs:
